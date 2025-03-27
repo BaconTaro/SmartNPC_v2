@@ -1,76 +1,80 @@
-# SmartNPC Game 🎮🧠
+# 🚀 SmartNPC Game - 项目启动指南
 
-基于 GPT 技术的虚幻引擎智能 NPC 项目。玩家可与 NPC 实现实时对话，每个 NPC 拥有独立人物设定与记忆系统，支持蓝图与 C++ 扩展，适用于 AI 游戏研发、学术研究等场景。
+这是一个使用 Unreal Engine 构建的 GPT 智能 NPC 对话游戏项目。
 
----
+## 📦 项目环境要求
 
-## 🚀 项目特点
-
-- 🤖 支持 GPT-3.5 / GPT-4 消息处理（C++ 接入 OpenAI API）
-- 🧠 每个 NPC 拥有独立 Prompt 与对话记忆
-- 🧩 基于 UE4 蓝图 + C++ 混合开发架构
-- 🗣️ 支持玩家按 F 键进入聊天输入模式
-- 📦 模块化组件：`ChatGPTHandler` 可复用至任意 Actor/NPC
+- **Unreal Engine**：建议使用 **4.27**（需和项目版本一致）
+- **Visual Studio**：推荐 2019 或 2022（需安装 C++ 和游戏开发组件）
+- **Git**：用于克隆项目
+- **Epic Games 账号**：下载和使用 UE 引擎
 
 ---
 
-## 🏗️ 技术栈
+## 🛠 安装步骤
 
-- Unreal Engine 4.27
-- C++ + 蓝图混合架构
-- OpenAI Chat Completions API
-- JSON 序列化（FJsonObject）
-- GitHub 版本管理（含 `.gitignore`）
+### 1️⃣ 安装 Epic Games Launcher 并配置 Unreal Engine
 
----
+- 下载地址：https://www.unrealengine.com/download
+- 安装完成后打开 Launcher → 登录账号
+- 进入“库（Library）”页面 → 安装 Unreal Engine 4.27（或与项目一致的版本）
 
-## 🕹️ 使用说明
+### 2️⃣ 克隆项目到本地
 
-1. 启动项目（UE4 编辑器）
-2. 将 `BP_NPCBase` 拖入场景
-3. 在 NPC 的 `ChatGPTHandler` 中选择角色类型（对应 Prompt）
-4. 玩家靠近 NPC 显示 “按 F 说话”
-5. F 开启对话框，输入消息并回车，GPT 回复即展示
-
----
-
-## 📁 文件结构（简略）
-
-```
-📦 SmartNPCGame/
-├─ Source/
-│  ├─ ChatGPTHandler.{h,cpp}      # GPT 请求处理组件（ActorComponent）
-│  ├─ NPCPromptConfig.{h,cpp}     # 可选：配置存储所有角色 Prompt
-│  └─ ...
-├─ Content/
-│  └─ UI/                         # WBP_ChatUI、WBP_Message 等
-├─ Config/
-├─ SmartNPCGame.uproject
-└─ .gitignore
+```bash
+git clone https://github.com/BaconTaro/SmartNPCGame.git
+cd SmartNPCGame
 ```
 
+> ✅ 你也可以通过 GitHub Desktop 克隆项目。
+
+### 3️⃣ 生成 VS 工程文件（第一次打开）
+
+方法一（推荐）：
+- 右键 `.uproject` 文件 → 选择 `Generate Visual Studio project files`
+
+方法二：
+- 双击 `.uproject` 文件 → 如果提示生成项目文件，点击确认
+
+### 4️⃣ 打开项目
+
+- 使用 Visual Studio 打开 `.sln` 文件，或者
+- 双击 `.uproject` 文件直接进入编辑器
+
+### 5️⃣ 编译项目（C++ 项目）
+
+- 第一次打开会自动编译，也可以在 Visual Studio 中编译：
+  - `Ctrl + Shift + B` 构建整个解决方案
+
 ---
 
-## 🧠 后续计划
+## 📁 项目结构简要说明
 
-- [ ] ✅ 支持多轮上下文记忆压缩
-- [ ] ✅ 引入情绪状态 / 角色标签系统
-- [ ] ✅ 自动生成 NPC 对话数据集（可训练）
-- [ ] ✅ 支持 GPT 回答语音朗读（TTS）
-- [ ] ✅ 升级至 UE5
-
----
-
-## 🤝 贡献说明
-
-欢迎参与开发、PR、提建议！你可以：
-
-- Fork 本项目，自定义角色 Prompt 配置
-- 提交 Bug 或新特性建议
-- 基于本项目开发 Demo/教学案例
+| 目录         | 说明                            |
+|--------------|---------------------------------|
+| `Config/`    | UE 项目的基础配置               |
+| `Content/`   | 蓝图资源、UI、材质等内容        |
+| `Source/`    | 所有 C++ 源码                   |
+| `.uproject`  | 项目主入口                      |
+| `.gitignore` | 忽略文件配置                    |
 
 ---
 
-## 📜 License
+## 🧠 常见问题
 
-本项目以 MIT 协议开源，使用时请注明原作者出处。
+### Q: 项目无法打开 / 转换版本？
+A: 请确认安装的 UE 版本与你项目一致（比如 4.27），否则可能提示转换。
+
+### Q: 蓝图资源缺失？
+A: 请确保你完整拉取了 `Content/` 文件夹，如果缺失请联系管理员重新上传或检查 `.gitignore`。
+
+### Q: 打不开 `.uproject`？
+A: 请先右键 `.uproject` → **生成 VS 项目文件**
+
+---
+
+## 📌 项目协作建议
+
+- 使用 `main` 分支为主干，功能开发建议在其他分支进行（如 `feature/dialog-system`）
+- 每次提交前运行本地测试，确保不破坏现有逻辑
+- 如有蓝图冲突，请提前沟通并协调合并流程（蓝图非文本，冲突较难解决）
