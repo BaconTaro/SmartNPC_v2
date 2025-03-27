@@ -1,0 +1,44 @@
+# Unreal Engine 基础忽略文件
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Visual Studio 和 VS Code 相关
+.vscode/
+.vs/
+*.VC.db
+*.sln
+*.opensdf
+*.sdf
+*.VC.opendb
+
+# Xcode 相关（如果跨平台）
+*.xcworkspace
+*.xcodeproj
+*.xcuserdata
+
+# Mac 系统文件
+.DS_Store
+
+# 编译生成中间文件
+*.obj
+*.pdb
+*.ipch
+*.log
+
+# 用户/本地设置
+*.user
+*.userprefs
+*.suo
+*.tmp
+
+# 本地 Git 信息
+.git/
+
+# 如果启用了 Git LFS，则不需要手动跟踪大文件
+*.ubulk
+*.ufont
+*.umap
+*.uasset
