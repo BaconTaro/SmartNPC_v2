@@ -32,11 +32,31 @@ void UChatGPTHandler::SendRequestToGPT(const FString& UserMessage)
 
 void UChatGPTHandler::CreateHttpRequest(const FString& UserMessage)
 {
-    // 这里的请求体根据需要调整
     TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-    JsonObject->SetStringField(TEXT("model"), TEXT("gpt-3.5-turbo"));
 
+    // 设置 Deepseek API 所需的参数
+    JsonObject->SetStringField(TEXT("model"), TEXT("Pro/deepseek-ai/DeepSeek-V3"));
+    JsonObject->SetBoolField(TEXT("stream"), false);
+    JsonObject->SetNumberField(TEXT("max_tokens"), 512);
+    JsonObject->SetNumberField(TEXT("temperature"), 0.7f);
+    JsonObject->SetNumberField(TEXT("top_p"), 0.7f);
+    JsonObject->SetNumberField(TEXT("top_k"), 50);
+    JsonObject->SetNumberField(TEXT("frequency_penalty"), 0.5f);
+    JsonObject->SetNumberField(TEXT("n"), 1);
+
+    // 构造 messages 数组
     TArray<TSharedPtr<FJsonValue>> MessagesArray;
+
+    // 先加入 Prompt，如果有设置
+    if (!PersonaPrompt.IsEmpty())
+    {
+        TSharedPtr<FJsonObject> PromptObject = MakeShareable(new FJsonObject());
+        PromptObject->SetStringField(TEXT("role"), TEXT("system"));
+        PromptObject->SetStringField(TEXT("content"), PersonaPrompt);
+        MessagesArray.Add(MakeShareable(new FJsonValueObject(PromptObject)));
+    }
+
+    // 加入玩家输入的消息
     TSharedPtr<FJsonObject> MessageObject = MakeShareable(new FJsonObject());
     MessageObject->SetStringField(TEXT("role"), TEXT("user"));
     MessageObject->SetStringField(TEXT("content"), UserMessage);
@@ -44,15 +64,17 @@ void UChatGPTHandler::CreateHttpRequest(const FString& UserMessage)
 
     JsonObject->SetArrayField(TEXT("messages"), MessagesArray);
 
+    // 序列化 JSON
     FString Content;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Content);
     FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
 
+    // 创建 HTTP 请求
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
-    HttpRequest->SetURL(TEXT("https://api.openai.com/v1/chat/completions"));
+    HttpRequest->SetURL(TEXT("https://api.siliconflow.cn/v1/chat/completions"));
     HttpRequest->SetVerb(TEXT("POST"));
     HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-    HttpRequest->SetHeader(TEXT("Authorization"), TEXT("Bearer YOUR_API_KEY"));
+    HttpRequest->SetHeader(TEXT("Authorization"), TEXT("Bearer sk-clmslcrlrjokqaouvzjedgqjsukwpqukwmtjlrskgdarxlux")); // 这里是API KEY： sk-clmslcrlrjokqaouvzjedgqjsukwpqukwmtjlrskgdarxlux
     HttpRequest->SetContentAsString(Content);
 
     HttpRequest->OnProcessRequestComplete().BindUObject(this, &UChatGPTHandler::OnResponseReceived);
@@ -98,7 +120,10 @@ void UChatGPTHandler::OnResponseReceived(FHttpRequestPtr Request, FHttpResponseP
 
     UE_LOG(LogTemp, Warning, TEXT("GPT 回复：%s"), *GPTReply);
 
-    // 👉 你可以在这里调用一个蓝图事件广播，把 GPTReply 发给 UI 显示
+    // 调用蓝图事件
+    OnChatGPTReplyReceived(GPTReply);
+
+
 }
 
 void UChatGPTHandler::SendMessageToGPT(const FString& Message)

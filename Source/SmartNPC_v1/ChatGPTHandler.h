@@ -7,6 +7,7 @@
 #include "HttpModule.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Delegates/DelegateCombinations.h"
 #include "ChatGPTHandler.generated.h"
 
 
@@ -26,6 +27,10 @@ public:
     // ChatGPTHandler.h
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
     FName RoleName;
+
+    // 蓝图事件：向蓝图广播回复内容
+    UFUNCTION(BlueprintImplementableEvent, Category = "ChatGPT")
+    void OnChatGPTReplyReceived(const FString& GPTReply);
 
 protected:
     virtual void BeginPlay() override;
