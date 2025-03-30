@@ -33,6 +33,15 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "GPT")
     FOnGPTReplyReceived OnGPTReplyReceived;
 
+    FString LoadedSystemPrompt;
+
+    void LoadPromptConfig();
+    void LogConversationToFile(const FString& Role, const FString& Message);
+
+    UFUNCTION(BlueprintCallable)
+    void LoadPromptFromTxt();
+
 private:
     void OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
 };

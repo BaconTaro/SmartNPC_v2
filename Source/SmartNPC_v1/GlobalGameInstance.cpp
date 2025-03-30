@@ -1,18 +1,23 @@
-// GlobalGameInstance.cpp
+ï»¿// GlobalGameInstance.cpp
 
 #include "GlobalGameInstance.h"
 
 void UGlobalGameInstance::Init()
 {
     Super::Init();
+
+
 }
 
-// cpp ÎÄ¼þ
+// cpp æ–‡ä»¶
 UGPTManager* UGlobalGameInstance::GetGPTManager()
 {
     if (!GPTManagerInstance)
     {
-        GPTManagerInstance = NewObject<UGPTManager>(this);  // ²»ÔÙ AddToRoot
+        GPTManagerInstance = NewObject<UGPTManager>(this);  // ä¸å† AddToRoot
     }
+    GPTManagerInstance->LoadPromptConfig();
+
+
     return GPTManagerInstance;
 }

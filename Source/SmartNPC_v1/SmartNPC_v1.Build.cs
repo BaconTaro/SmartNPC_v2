@@ -8,6 +8,9 @@ public class SmartNPC_v1 : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay", "HTTP", "Json", "JsonUtilities" });
+		PublicDependencyModuleNames.AddRange(new string[] 
+		{ "Core", "CoreUObject", "Engine", "InputCore", "HeadMountedDisplay",
+			"HTTP", "Json", "JsonUtilities", "AIModule", "NavigationSystem","GameplayTasks"
+		});
 	}
 }

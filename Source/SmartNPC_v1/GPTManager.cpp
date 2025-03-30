@@ -26,13 +26,16 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     // 构建 messages 数组
     TArray<TSharedPtr<FJsonValue>> Messages;
 
-    // 添加系统提示（Prompt）
-    if (!PersonaPrompt.IsEmpty())
+    // 原来的传入参数改为 optional
+    if (!LoadedSystemPrompt.IsEmpty())
     {
+        // 使用配置文件里的 system prompt
         TSharedPtr<FJsonObject> SystemPrompt = MakeShareable(new FJsonObject());
         SystemPrompt->SetStringField(TEXT("role"), TEXT("system"));
-        SystemPrompt->SetStringField(TEXT("content"), PersonaPrompt);
+        SystemPrompt->SetStringField(TEXT("content"), LoadedSystemPrompt);
         Messages.Add(MakeShareable(new FJsonValueObject(SystemPrompt)));
+
+        LogConversationToFile(TEXT("System"), LoadedSystemPrompt);
     }
 
     // 添加对话历史
@@ -51,7 +54,7 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     Messages.Add(MakeShareable(new FJsonValueObject(UserMessage)));
 
     RootObject->SetArrayField(TEXT("messages"), Messages);
-
+    LogConversationToFile(TEXT("User"), Message);
     // 序列化为 JSON 字符串
     FString RequestBody;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
@@ -102,7 +105,71 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
 
     // 👇 向蓝图广播回复
     OnGPTReplyReceived.Broadcast(GPTReply);
+    LogConversationToFile(TEXT("GPT"), GPTReply);
 }
+
+void UGPTManager::LoadPromptConfig()
+{
+    FString ConfigPath = FPaths::ProjectContentDir() + TEXT("Config/GPTConfig.json");
+    FString JsonRaw;
+    UE_LOG(LogTemp, Warning, TEXT("Full Config Path: %s"), *ConfigPath);
+    if (FFileHelper::LoadFileToString(JsonRaw, *ConfigPath))
+    {
+        TSharedPtr<FJsonObject> JsonObject;
+        TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonRaw);
+
+        if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+        {
+            LoadedSystemPrompt = JsonObject->GetStringField("system_prompt");
+            UE_LOG(LogTemp, Log, TEXT("System Prompt Loaded: %s"), *LoadedSystemPrompt);
+        }
+        else 
+        {
+            UE_LOG(LogTemp, Log, TEXT("System Prompt NOT Loaded"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("加载 GPTConfig.json 失败"));
+    }
+}
+
+void UGPTManager::LoadPromptFromTxt()
+{
+    FString FilePath = FPaths::ProjectContentDir() + TEXT("Config/PromptTemplate.txt");
+
+    FString TxtContent;
+
+    if (FFileHelper::LoadFileToString(TxtContent, *FilePath))
+    {
+        LoadedSystemPrompt = TxtContent;
+        UE_LOG(LogTemp, Log, TEXT("成功加载 PromptTemplate.txt"));
+        UE_LOG(LogTemp, Log, TEXT("Prompt 内容:\n%s"), *LoadedSystemPrompt);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("加载 PromptTemplate.txt 失败！路径：%s"), *FilePath);
+    }
+}
+
+void UGPTManager::LogConversationToFile(const FString& Role, const FString& Message)
+{
+    FString LogDir = FPaths::ProjectLogDir();  // 日志目录（通常是 Saved/Logs）
+    FString LogFilePath = LogDir / TEXT("GPTConversationLog.txt");
+
+    FString TimeStamp = FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S"));
+    FString FullMessage = FString::Printf(TEXT("[%s][%s]: %s\n"), *TimeStamp, *Role, *Message);
+
+    FFileHelper::SaveStringToFile(
+        FullMessage,
+        *LogFilePath,
+        FFileHelper::EEncodingOptions::AutoDetect,
+        &IFileManager::Get(),
+        FILEWRITE_Append
+    );
+}
+
+
 
 //UGPTManager* UGPTManager::GetGPTManager(UObject* WorldContext)
 //{
