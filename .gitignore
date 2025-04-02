@@ -13,6 +13,8 @@ Saved/
 *.opensdf
 *.sdf
 *.VC.opendb
+*.ignore
+*.code-workspace
 
 # Xcode 相关（如果跨平台）
 *.xcworkspace
