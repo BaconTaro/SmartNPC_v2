@@ -15,7 +15,10 @@ class SMARTNPC_V1_API ASmartNPCCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	ASmartNPCCharacter();
-
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Location")
+	FString CurrentLocation;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Location")
+	FString LastLocation;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

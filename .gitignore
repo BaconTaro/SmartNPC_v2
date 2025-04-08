@@ -42,5 +42,3 @@ Saved/
 # 如果启用了 Git LFS，则不需要手动跟踪大文件
 *.ubulk
 *.ufont
-*.umap
-*.uasset

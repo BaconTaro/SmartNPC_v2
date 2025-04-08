@@ -4,6 +4,8 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Json.h"
 #include "JsonUtilities.h"
+#include "SmartNPCCharacter.h"
+#include <Kismet/GameplayStatics.h>
 
 UGPTManager::UGPTManager()
 {
@@ -29,13 +31,16 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     // 原来的传入参数改为 optional
     if (!LoadedSystemPrompt.IsEmpty())
     {
-        // 使用配置文件里的 system prompt
+        FString SystemContext = BuildSystemContext();
+        FString SystemContextFormatted = FString::Printf(TEXT("{\n%s\n}"), *SystemContext);
+        FString CombinedSystemPrompt = LoadedSystemPrompt + TEXT("\n\n 大楼里可能有很多房间或位置，以下是你所处的房间或位置和时节点：\n") + SystemContextFormatted;
+
         TSharedPtr<FJsonObject> SystemPrompt = MakeShareable(new FJsonObject());
         SystemPrompt->SetStringField(TEXT("role"), TEXT("system"));
-        SystemPrompt->SetStringField(TEXT("content"), LoadedSystemPrompt);
+        SystemPrompt->SetStringField(TEXT("content"), CombinedSystemPrompt);
         Messages.Add(MakeShareable(new FJsonValueObject(SystemPrompt)));
 
-        LogConversationToFile(TEXT("System"), LoadedSystemPrompt);
+        LogConversationToFile(TEXT("System"), CombinedSystemPrompt);
     }
 
     // 添加对话历史
@@ -71,7 +76,31 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     Request->OnProcessRequestComplete().BindUObject(this, &UGPTManager::OnResponseReceived);
     Request->ProcessRequest();
 }
+FString UGPTManager::BuildSystemContext()
+{
+    FString Context;
 
+    // 1. NPC 位置信息
+    UWorld* World = GetWorld();
+    if (!World) return TEXT("");
+
+    TArray<AActor*> FoundNPCs;
+    UGameplayStatics::GetAllActorsOfClass(World, ASmartNPCCharacter::StaticClass(), FoundNPCs);
+
+    for (AActor* Actor : FoundNPCs)
+    {
+        ASmartNPCCharacter* NPC = Cast<ASmartNPCCharacter>(Actor);
+        if (NPC)
+        {
+            Context += FString::Printf(TEXT("当前房间：%s\n上一个房间：%s\n\n"),
+                *NPC->CurrentLocation, *NPC->LastLocation);
+        }
+    }
+
+    // 🚀 可在这里继续添加更多系统信息，例如时间、任务、环境等
+
+    return Context;
+}
 void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful) // 回调
 {
     if (!bWasSuccessful || !Response.IsValid())
@@ -103,9 +132,57 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
 
     UE_LOG(LogTemp, Warning, TEXT("GPT 回复：%s"), *GPTReply);
 
-    // 👇 向蓝图广播回复
+    // 👇 向蓝图广播回复，这个GPTReply 到此还没被parse，先留着，看看全貌，这个东西会整个被打印到游戏对话框内，方便debug用。
     OnGPTReplyReceived.Broadcast(GPTReply);
     LogConversationToFile(TEXT("GPT"), GPTReply);
+
+    // 现在parse一下GPTReply，然后广播给蓝图。
+    FParsedCommand Parsed;
+    if (ParseGPTReply(GPTReply, Parsed))
+    {
+        // ✅ 成功解析，可以传给 NPC 控制逻辑
+        UE_LOG(LogTemp, Log, TEXT("Action: %s, Target: %s, Direction: %s, Question: %s"),
+            *Parsed.Action, *Parsed.Target, *Parsed.Direction, *Parsed.Question);
+
+        // 示例：广播给蓝图 NPC 使用
+        OnParsedCommand.Broadcast(Parsed);
+    }
+}
+
+bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutCommand)
+{
+    // 移除开头的 ```json 和结尾的 ```
+    FString CleanedJson = GPTReply;
+
+    CleanedJson.TrimStartAndEndInline(); // 去除首尾空格
+
+    // 判断是否包含 Markdown 标记
+    if (CleanedJson.StartsWith("```"))
+    {
+        int32 StartIndex = CleanedJson.Find("{");
+        int32 EndIndex = CleanedJson.Find("```", ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+
+        if (StartIndex != INDEX_NONE && EndIndex != INDEX_NONE && EndIndex > StartIndex)
+        {
+            CleanedJson = CleanedJson.Mid(StartIndex, EndIndex - StartIndex);
+        }
+    }
+
+
+    TSharedPtr<FJsonObject> JsonObject;
+    TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(CleanedJson);
+    if (FJsonSerializer::Deserialize(Reader, JsonObject))
+    {
+        JsonObject->TryGetStringField(TEXT("action"), OutCommand.Action);
+        JsonObject->TryGetStringField(TEXT("target"), OutCommand.Target);
+        JsonObject->TryGetStringField(TEXT("direction"), OutCommand.Direction);
+        JsonObject->TryGetStringField(TEXT("question"), OutCommand.Question);
+
+        return true;
+    }
+
+    UE_LOG(LogTemp, Error, TEXT("❌ 无法解析 GPT 回复中的 JSON 格式：\n%s"), *GPTReply);
+    return false;
 }
 
 void UGPTManager::LoadPromptConfig()

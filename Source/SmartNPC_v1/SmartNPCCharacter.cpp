@@ -15,7 +15,8 @@ ASmartNPCCharacter::ASmartNPCCharacter()
 void ASmartNPCCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	CurrentLocation = "RestRoom";
+	LastLocation = "None";
 	//AAIController* AICon = Cast<AAIController>(GetController());
 	//if (AICon)
 	//{
