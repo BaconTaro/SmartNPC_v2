@@ -70,7 +70,7 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     Request->SetURL(TEXT("https://api.siliconflow.cn/v1/chat/completions"));
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
-    Request->SetHeader(TEXT("Authorization"), TEXT("Bearer sk-clmslcrlrjokqaouvzjedgqjsukwpqukwmtjlrskgdarxlux")); // 👈 记得替换你的 Key
+    Request->SetHeader(TEXT("Authorization"), TEXT("Bearer sk-mmzjqbguiaqoupbunjgnrilaczmwsmsjzltbgtfitsaykdto")); // 👈 记得替换你的 Key
     Request->SetContentAsString(RequestBody);
 
     Request->OnProcessRequestComplete().BindUObject(this, &UGPTManager::OnResponseReceived);
@@ -116,6 +116,7 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
     if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
     {
         UE_LOG(LogTemp, Error, TEXT("JSON 解析失败！"));
+        LogConversationToFile(TEXT("Game System: "), ResponseContent);
         return;
     }
 
@@ -232,7 +233,7 @@ void UGPTManager::LoadPromptFromTxt()
 void UGPTManager::LogConversationToFile(const FString& Role, const FString& Message)
 {
     FString LogDir = FPaths::ProjectLogDir();  // 日志目录（通常是 Saved/Logs）
-    FString LogFilePath = LogDir / TEXT("GPTConversationLog.txt");
+    FString LogFilePath = LogDir / TEXT("GPTConversationLog.log");
 
     FString TimeStamp = FDateTime::Now().ToString(TEXT("%Y-%m-%d %H:%M:%S"));
     FString FullMessage = FString::Printf(TEXT("[%s][%s]: %s\n"), *TimeStamp, *Role, *Message);

@@ -5,6 +5,13 @@ DerivedDataCache/
 Intermediate/
 Saved/
 
+# Ignore Unreal Starter Content
+Content/StarterContent/
+Content/CitizenNPC/
+Content/Fluorescence/
+Content/Hospital_Meshingun/
+
+
 # Visual Studio 和 VS Code 相关
 .vscode/
 .vs/

@@ -15,8 +15,12 @@ ASmartNPCCharacter::ASmartNPCCharacter()
 void ASmartNPCCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	CurrentLocation = "RestRoom";
+	CurrentLocation = "Office";
+
 	LastLocation = "None";
+
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("当前房间：%s"), *CurrentLocation));
+	//UE_LOG(LogTemp, Warning, TEXT("当前房间：%s"), *CurrentLocation);
 	//AAIController* AICon = Cast<AAIController>(GetController());
 	//if (AICon)
 	//{
