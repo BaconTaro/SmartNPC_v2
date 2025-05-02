@@ -42,24 +42,32 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
 
         LogConversationToFile(TEXT("System"), CombinedSystemPrompt);
     }
-
-    // 添加对话历史
-    for (int32 i = 0; i < History.Num(); ++i)
+    
+    // 倒序添加对话历史
+    for (int32 i = History.Num() - 1; i >= 0; --i)
     {
         TSharedPtr<FJsonObject> HistoryMessage = MakeShareable(new FJsonObject());
         HistoryMessage->SetStringField(TEXT("role"), (i % 2 == 0) ? TEXT("user") : TEXT("assistant"));
         HistoryMessage->SetStringField(TEXT("content"), History[i]);
+
         Messages.Add(MakeShareable(new FJsonValueObject(HistoryMessage)));
+
+        // 转换为 FString 并记录日志
+        FString OutputString;
+        TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+        FJsonSerializer::Serialize(HistoryMessage.ToSharedRef(), Writer);
+
+        LogConversationToFile(TEXT("History"), OutputString);
     }
 
-    // 添加当前玩家消息
-    TSharedPtr<FJsonObject> UserMessage = MakeShareable(new FJsonObject());
-    UserMessage->SetStringField(TEXT("role"), TEXT("user"));
-    UserMessage->SetStringField(TEXT("content"), Message);
-    Messages.Add(MakeShareable(new FJsonValueObject(UserMessage)));
+    //// 添加当前玩家消息
+    //TSharedPtr<FJsonObject> UserMessage = MakeShareable(new FJsonObject());
+    //UserMessage->SetStringField(TEXT("role"), TEXT("user"));
+    //UserMessage->SetStringField(TEXT("content"), Message);
+    //Messages.Add(MakeShareable(new FJsonValueObject(UserMessage)));
+    //LogConversationToFile(TEXT("User"), Message);
 
     RootObject->SetArrayField(TEXT("messages"), Messages);
-    LogConversationToFile(TEXT("User"), Message);
     // 序列化为 JSON 字符串
     FString RequestBody;
     TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestBody);
@@ -75,6 +83,8 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
 
     Request->OnProcessRequestComplete().BindUObject(this, &UGPTManager::OnResponseReceived);
     Request->ProcessRequest();
+
+    LogConversationToFile(TEXT("FullRequest"), RequestBody);
 }
 FString UGPTManager::BuildSystemContext()
 {
@@ -143,7 +153,7 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
     {
         // ✅ 成功解析，可以传给 NPC 控制逻辑
         UE_LOG(LogTemp, Log, TEXT("Action: %s, Target: %s, Direction: %s, Question: %s"),
-            *Parsed.Action, *Parsed.Target, *Parsed.Direction, *Parsed.Question);
+            *Parsed.Action, *Parsed.Target, *Parsed.Speak, *Parsed.Mood);
 
         // 示例：广播给蓝图 NPC 使用
         OnParsedCommand.Broadcast(Parsed);
@@ -176,8 +186,8 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
     {
         JsonObject->TryGetStringField(TEXT("action"), OutCommand.Action);
         JsonObject->TryGetStringField(TEXT("target"), OutCommand.Target);
-        JsonObject->TryGetStringField(TEXT("direction"), OutCommand.Direction);
-        JsonObject->TryGetStringField(TEXT("question"), OutCommand.Question);
+        JsonObject->TryGetStringField(TEXT("speak"), OutCommand.Speak);
+        JsonObject->TryGetStringField(TEXT("mood"), OutCommand.Mood);
 
         return true;
     }

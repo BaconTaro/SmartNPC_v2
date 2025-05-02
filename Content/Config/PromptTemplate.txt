@@ -52,7 +52,7 @@
             "description": "档案文件夹、红色文件夹"
         },
         {
-            "id": "SM_door_22", 
+            "id": "Base_DoorActor", 
             "description": "一扇门，通往走廊，门是关着的、办公室的门"
         },
         {

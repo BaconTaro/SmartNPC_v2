@@ -12,8 +12,7 @@
  */
 
  // 广播事件：对话完成后的回复
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGPTReplyReceived, const FString&, GPTReply);
 
  //  放在类外部（类定义之前），这是标准 UE4 做法。 
  //  这个是LLM返回的json格式，有："action","Target","direction"和"question"之类的，具体取决于我的prompt怎么写。 后续会更新。
@@ -29,10 +28,10 @@ struct FParsedCommand
     FString Target;
 
     UPROPERTY(BlueprintReadWrite)
-    FString Direction;
+    FString Speak;
 
     UPROPERTY(BlueprintReadWrite)
-    FString Question;
+    FString Mood;
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnParsedCommand, const FParsedCommand&, Command);
