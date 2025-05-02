@@ -12,7 +12,7 @@
  */
 
  // 广播事件：对话完成后的回复
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGPTReplyReceived, const FString&, GPTReply);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
 
 
  //  放在类外部（类定义之前），这是标准 UE4 做法。 
