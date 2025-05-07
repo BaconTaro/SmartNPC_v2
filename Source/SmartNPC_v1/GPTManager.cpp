@@ -12,7 +12,7 @@ UGPTManager::UGPTManager()
     // 构造函数逻辑（可以为空）
 }
 
-void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TArray<FString>& History, const FString& Message)
+void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TArray<FAIMessage>& History, const FString& Message)
 {
     // 构建 JSON 根对象
     TSharedPtr<FJsonObject> RootObject = MakeShareable(new FJsonObject());
@@ -46,16 +46,18 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     // 倒序添加对话历史
     for (int32 i = History.Num() - 1; i >= 0; --i)
     {
+        const FAIMessage& Msg = History[i];
+
         TSharedPtr<FJsonObject> HistoryMessage = MakeShareable(new FJsonObject());
-        HistoryMessage->SetStringField(TEXT("role"), (i % 2 == 0) ? TEXT("user") : TEXT("assistant"));
-        HistoryMessage->SetStringField(TEXT("content"), History[i]);
+        HistoryMessage->SetStringField(TEXT("role"), Msg.Role);
+        HistoryMessage->SetStringField(TEXT("content"), Msg.Content);
 
         Messages.Add(MakeShareable(new FJsonValueObject(HistoryMessage)));
 
-        // 转换为 FString 并记录日志
+        // 转换为 FString 并记录日志（记录最后一条）
         FString OutputString;
         TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
-        FJsonSerializer::Serialize(HistoryMessage.ToSharedRef(), Writer);
+        FJsonSerializer::Serialize(Messages.Last()->AsObject().ToSharedRef(), Writer); // 可根据需要记录某条
 
         LogConversationToFile(TEXT("History"), OutputString);
     }
@@ -131,9 +133,21 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
     }
 
     const TArray<TSharedPtr<FJsonValue>>* Choices;
-    if (!JsonObject->TryGetArrayField(TEXT("choices"), Choices) || Choices->Num() == 0)
+    if (!JsonObject->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
     {
-        UE_LOG(LogTemp, Error, TEXT("返回的 choices 无效"));
+        FString ChoicesStr;
+
+        if (Choices)
+        {
+            // 打印内容：可视化空数组内容，而不是强行序列化
+            ChoicesStr = FString::Printf(TEXT("Choices is valid but empty. Num = %d"), Choices->Num());
+        }
+        else
+        {
+            ChoicesStr = TEXT("Choices 指针为 nullptr");
+        }
+
+        UE_LOG(LogTemp, Error, TEXT("返回的 choices 无效，内容：%s"), *ChoicesStr);
         return;
     }
 

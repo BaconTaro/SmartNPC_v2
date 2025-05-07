@@ -34,6 +34,30 @@ struct FParsedCommand
     FString Mood;
 };
 
+// 后续再说
+//UENUM(BlueprintType) 
+//enum class EAIMessageRole : uint8
+//{
+//    User       UMETA(DisplayName = "User"),
+//    Assistant  UMETA(DisplayName = "Assistant"),
+//    System     UMETA(DisplayName = "System")
+//};
+
+USTRUCT(BlueprintType)
+
+struct FAIMessage
+{
+    GENERATED_BODY()
+
+    // user / assistant / system
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Message")
+    FString Role;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI Message")
+    FString Content;
+};
+
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnParsedCommand, const FParsedCommand&, Command);
 UCLASS()
 class SMARTNPC_V1_API UGPTManager : public UObject
@@ -47,7 +71,7 @@ public:
 
     // 蓝图可调用的发送消息方法
     UFUNCTION(BlueprintCallable, Category = "GPT")
-    void SendMessageWithContext(const FString& PersonaPrompt, const TArray<FString>& History, const FString& Message);
+    void SendMessageWithContext(const FString& PersonaPrompt, const TArray<FAIMessage>& History, const FString& Message);
 
 
     // GPT 回复广播（给 HUD 使用）
@@ -58,6 +82,9 @@ public:
     FOnParsedCommand OnParsedCommand;
 
     FString LoadedSystemPrompt;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+    TArray<FAIMessage> ChatHistory;
 
     void LoadPromptConfig();
     void LogConversationToFile(const FString& Role, const FString& Message);
