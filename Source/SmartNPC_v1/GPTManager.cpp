@@ -5,6 +5,8 @@
 #include "Json.h"
 #include "JsonUtilities.h"
 #include "SmartNPCCharacter.h"
+#include "InteractableActor.h"
+#include "EngineUtils.h"
 #include <Kismet/GameplayStatics.h>
 
 UGPTManager::UGPTManager()
@@ -33,7 +35,7 @@ void UGPTManager::SendMessageWithContext(const FString& PersonaPrompt, const TAr
     {
         FString SystemContext = BuildSystemContext();
         FString SystemContextFormatted = FString::Printf(TEXT("{\n%s\n}"), *SystemContext);
-        FString CombinedSystemPrompt = LoadedSystemPrompt + TEXT("\n\n 大楼里可能有很多房间或位置，以下是你所处的房间或位置和时节点：\n") + SystemContextFormatted;
+        FString CombinedSystemPrompt = LoadedSystemPrompt + TEXT("") + SystemContextFormatted;
 
         TSharedPtr<FJsonObject> SystemPrompt = MakeShareable(new FJsonObject());
         SystemPrompt->SetStringField(TEXT("role"), TEXT("system"));
@@ -124,7 +126,7 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
     FString ResponseContent = Response->GetContentAsString();
     TSharedPtr<FJsonObject> JsonObject;
     TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseContent);
-
+    LogConversationToFile(TEXT("ResponseContent: "), ResponseContent);
     if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
     {
         UE_LOG(LogTemp, Error, TEXT("JSON 解析失败！"));
@@ -157,8 +159,8 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
 
     UE_LOG(LogTemp, Warning, TEXT("GPT 回复：%s"), *GPTReply);
 
-    // 👇 向蓝图广播回复，这个GPTReply 到此还没被parse，先留着，看看全貌，这个东西会整个被打印到游戏对话框内，方便debug用。
-    OnGPTReplyReceived.Broadcast(GPTReply);
+
+
     LogConversationToFile(TEXT("GPT"), GPTReply);
 
     // 现在parse一下GPTReply，然后广播给蓝图。
@@ -168,9 +170,10 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
         // ✅ 成功解析，可以传给 NPC 控制逻辑
         UE_LOG(LogTemp, Log, TEXT("Action: %s, Target: %s, Direction: %s, Question: %s"),
             *Parsed.Action, *Parsed.Target, *Parsed.Speak, *Parsed.Mood);
-
+        // 👇 向蓝图广播回复，这个GPTReply 到此还没被parse，先留着，看看全貌，这个东西会整个被打印到游戏对话框内，方便debug用。
+        OnGPTReplyReceived.Broadcast(GPTReply, Parsed);
         // 示例：广播给蓝图 NPC 使用
-        OnParsedCommand.Broadcast(Parsed);
+        //OnParsedCommand.Broadcast(Parsed);
     }
 }
 
@@ -202,6 +205,70 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
         JsonObject->TryGetStringField(TEXT("target"), OutCommand.Target);
         JsonObject->TryGetStringField(TEXT("speak"), OutCommand.Speak);
         JsonObject->TryGetStringField(TEXT("mood"), OutCommand.Mood);
+
+        //根据 action 和 target 执行交互
+        if (OutCommand.Action == TEXT("interact"))
+        {
+            for (TActorIterator<AInteractableActor> It(GetWorld()); It; ++It)
+            {
+                AInteractableActor* TargetActor = *It;
+                if (TargetActor && TargetActor->GetFName().ToString() == OutCommand.Target)
+                {
+                    OutCommand.Action = TEXT("speak");
+
+                    LogConversationToFile(TEXT("GPT New Action："), OutCommand.Action);
+                    // 检查是否已交互，若是，修改 Action 为 speak
+                    if (TargetActor->IsActorInteracted())
+                    {
+                        UE_LOG(LogTemp, Warning, TEXT("已交互，修改 Action 为 speak"));
+                        
+
+                        // 也可以直接退出，避免再次交互：
+                        return true;
+                    }
+
+                    FName nextStage = TargetActor->GetNextStage();
+
+                    if (nextStage.IsNone() || nextStage.IsEqual(TEXT("NULL")) || nextStage.IsEqual(TEXT("")))
+                    {
+                        break; // 找到后停止
+                    }
+                    else 
+                    {
+                        TargetActor->SetActorInteracted(true); //先设置已经被交互了。
+
+                        FString Result = TargetActor->Interact();
+                        LogConversationToFile(TEXT("GAME SYSTEM"), Result);
+                        UE_LOG(LogTemp, Log, TEXT("交互结果: %s"), *Result);
+
+                        //可以这样将 Result 转换为一个结构化的 FAIMessage，并插入到 ChatHistory 中，确保它是 system 角色发出的消息：
+                        FAIMessage SystemMessage;
+                        SystemMessage.Role = TEXT("system");
+                        SystemMessage.Content = Result;
+
+                        for (auto Char : SystemMessage.Content)
+                        {
+                            UE_LOG(LogTemp, Warning, TEXT("Char code: %d"), Char);
+                        }
+
+                        for (TCHAR C : SystemMessage.Content)
+                        {
+                            UE_LOG(LogTemp, Warning, TEXT("Char code2: %d"), C);
+                        }
+
+                        ChatHistory.Insert(SystemMessage, 0); // 插入到开头
+
+                        LoadPromptFromTxt(); // 重新更新环境信息
+
+                        SendMessageWithContext(TEXT(""), ChatHistory, Result);
+                        break; // 找到后停止
+                    }
+
+                    
+                }
+            }
+        }
+
 
         return true;
     }
@@ -236,6 +303,7 @@ void UGPTManager::LoadPromptConfig()
     }
 }
 
+// 这个是从GlobalGameInstance.cpp 调用的
 void UGPTManager::LoadPromptFromTxt()
 {
     FString FilePath = FPaths::ProjectContentDir() + TEXT("Config/PromptTemplate.txt");
@@ -245,6 +313,12 @@ void UGPTManager::LoadPromptFromTxt()
     if (FFileHelper::LoadFileToString(TxtContent, *FilePath))
     {
         LoadedSystemPrompt = TxtContent;
+        LoadedSystemPrompt = LoadedSystemPrompt + GenerateEnvironmentPrompt();
+
+        if (!LoadedSystemPrompt.EndsWith("\n")) {
+            LoadedSystemPrompt.AppendChar('\n');
+        }
+
         UE_LOG(LogTemp, Log, TEXT("成功加载 PromptTemplate.txt"));
         UE_LOG(LogTemp, Log, TEXT("Prompt 内容:\n%s"), *LoadedSystemPrompt);
     }
@@ -272,6 +346,48 @@ void UGPTManager::LogConversationToFile(const FString& Role, const FString& Mess
 }
 
 
+// 给所有的可互动的actor都放到prompt内
+// 以后可以做距离检测，目前先全放到里面
+FString UGPTManager::GenerateEnvironmentPrompt()
+{
+    FString Result;
+    TSharedPtr<FJsonObject> RootObject = MakeShareable(new FJsonObject);
+
+     //房间名（可选）
+    RootObject->SetStringField("room", "Office");
+
+    // 环境描述（可选）
+    RootObject->SetStringField("description", "Your own office, temporarily safe.");
+
+    // 获取场景中所有 InteractableActor
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), AInteractableActor::StaticClass(), FoundActors);
+
+    TArray<TSharedPtr<FJsonValue>> ObjectArray;
+    for (AActor* Actor : FoundActors)
+    {
+        AInteractableActor* Interactable = Cast<AInteractableActor>(Actor);
+        if (Interactable)
+        {
+            TSharedPtr<FJsonObject> Obj = MakeShareable(new FJsonObject);
+            Obj->SetStringField("id", Interactable->GetFName().ToString());
+            Obj->SetStringField("description", Interactable->GetObjectDescription());
+            if (Interactable->IsActorInteracted()) 
+            {
+                Obj->SetStringField("interact", Interactable->GetCurrentStageDescription());
+            }
+            ObjectArray.Add(MakeShareable(new FJsonValueObject(Obj)));
+        }
+    }
+
+    RootObject->SetArrayField("objects", ObjectArray);
+
+    FString OutputString;
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+    FJsonSerializer::Serialize(RootObject.ToSharedRef(), Writer);
+
+    return OutputString;
+}
 
 //UGPTManager* UGPTManager::GetGPTManager(UObject* WorldContext)
 //{

@@ -16,6 +16,7 @@ UGPTManager* UGlobalGameInstance::GetGPTManager()
     {
         GPTManagerInstance = NewObject<UGPTManager>(this);  // 不再 AddToRoot
     }
+
     GPTManagerInstance->LoadPromptFromTxt();
 
 
