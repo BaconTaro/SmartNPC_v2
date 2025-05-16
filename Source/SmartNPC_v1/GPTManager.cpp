@@ -240,9 +240,15 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
                         LogConversationToFile(TEXT("GAME SYSTEM"), Result);
                         UE_LOG(LogTemp, Log, TEXT("交互结果: %s"), *Result);
 
-                        // TODO: 将Result add 到  OutCommand.Speak  后面即可。
-
-
+                        // 将交互结果添加到OutCommand.Speak后面
+                        if (OutCommand.Speak.IsEmpty())
+                        {
+                            OutCommand.Speak = Result;
+                        }
+                        else
+                        {
+                            OutCommand.Speak = OutCommand.Speak + TEXT("\n") + Result;
+                        }
 
                         //可以这样将 Result 转换为一个结构化的 FAIMessage，并插入到 ChatHistory 中，确保它是 system 角色发出的消息：
                         //FAIMessage SystemMessage;
