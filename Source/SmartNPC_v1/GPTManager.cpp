@@ -159,8 +159,8 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
 
     UE_LOG(LogTemp, Warning, TEXT("GPT 回复：%s"), *GPTReply);
 
-    // 👇 向蓝图广播回复，这个GPTReply 到此还没被parse，先留着，看看全貌，这个东西会整个被打印到游戏对话框内，方便debug用。
-    OnGPTReplyReceived.Broadcast(GPTReply);
+
+
     LogConversationToFile(TEXT("GPT"), GPTReply);
 
     // 现在parse一下GPTReply，然后广播给蓝图。
@@ -170,9 +170,10 @@ void UGPTManager::OnResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr R
         // ✅ 成功解析，可以传给 NPC 控制逻辑
         UE_LOG(LogTemp, Log, TEXT("Action: %s, Target: %s, Direction: %s, Question: %s"),
             *Parsed.Action, *Parsed.Target, *Parsed.Speak, *Parsed.Mood);
-
+        // 👇 向蓝图广播回复，这个GPTReply 到此还没被parse，先留着，看看全貌，这个东西会整个被打印到游戏对话框内，方便debug用。
+        OnGPTReplyReceived.Broadcast(GPTReply, Parsed);
         // 示例：广播给蓝图 NPC 使用
-        OnParsedCommand.Broadcast(Parsed);
+        //OnParsedCommand.Broadcast(Parsed);
     }
 }
 
@@ -213,11 +214,21 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
                 AInteractableActor* TargetActor = *It;
                 if (TargetActor && TargetActor->GetFName().ToString() == OutCommand.Target)
                 {
+<<<<<<< HEAD
+=======
+                    OutCommand.Action = TEXT("speak");
+
+                    LogConversationToFile(TEXT("GPT New Action："), OutCommand.Action);
+>>>>>>> 1e4853816e03546e631f8b60db899609286b6667
                     // 检查是否已交互，若是，修改 Action 为 speak
                     if (TargetActor->IsActorInteracted())
                     {
                         UE_LOG(LogTemp, Warning, TEXT("已交互，修改 Action 为 speak"));
+<<<<<<< HEAD
                         OutCommand.Action = TEXT("speak");
+=======
+                        
+>>>>>>> 1e4853816e03546e631f8b60db899609286b6667
 
                         // 也可以直接退出，避免再次交互：
                         return true;
