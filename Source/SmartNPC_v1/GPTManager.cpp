@@ -214,22 +214,13 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
                 AInteractableActor* TargetActor = *It;
                 if (TargetActor && TargetActor->GetFName().ToString() == OutCommand.Target)
                 {
-<<<<<<< HEAD
-=======
                     OutCommand.Action = TEXT("speak");
-
                     LogConversationToFile(TEXT("GPT New Action："), OutCommand.Action);
->>>>>>> 1e4853816e03546e631f8b60db899609286b6667
+
                     // 检查是否已交互，若是，修改 Action 为 speak
                     if (TargetActor->IsActorInteracted())
                     {
                         UE_LOG(LogTemp, Warning, TEXT("已交互，修改 Action 为 speak"));
-<<<<<<< HEAD
-                        OutCommand.Action = TEXT("speak");
-=======
-                        
->>>>>>> 1e4853816e03546e631f8b60db899609286b6667
-
                         // 也可以直接退出，避免再次交互：
                         return true;
                     }
