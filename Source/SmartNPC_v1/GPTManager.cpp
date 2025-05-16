@@ -215,6 +215,7 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
                 if (TargetActor && TargetActor->GetFName().ToString() == OutCommand.Target)
                 {
                     OutCommand.Action = TEXT("say");
+                    
                     LogConversationToFile(TEXT("GPT New Action："), OutCommand.Action);
 
                     // 检查是否已交互，若是，修改 Action 为 speak
@@ -239,26 +240,33 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
                         LogConversationToFile(TEXT("GAME SYSTEM"), Result);
                         UE_LOG(LogTemp, Log, TEXT("交互结果: %s"), *Result);
 
+                        // TODO: 将Result add 到  OutCommand.Speak  后面即可。
+
+
+
                         //可以这样将 Result 转换为一个结构化的 FAIMessage，并插入到 ChatHistory 中，确保它是 system 角色发出的消息：
-                        FAIMessage SystemMessage;
-                        SystemMessage.Role = TEXT("system");
-                        SystemMessage.Content = Result;
+                        //FAIMessage SystemMessage;
+                        //SystemMessage.Role = TEXT("system");
+                        //SystemMessage.Content = Result;
 
-                        for (auto Char : SystemMessage.Content)
-                        {
-                            UE_LOG(LogTemp, Warning, TEXT("Char code: %d"), Char);
-                        }
+                        //for (auto Char : SystemMessage.Content)
+                        //{
+                        //    UE_LOG(LogTemp, Warning, TEXT("Char code: %d"), Char);
+                        //}
 
-                        for (TCHAR C : SystemMessage.Content)
-                        {
-                            UE_LOG(LogTemp, Warning, TEXT("Char code2: %d"), C);
-                        }
+                        //for (TCHAR C : SystemMessage.Content)
+                        //{
+                        //    UE_LOG(LogTemp, Warning, TEXT("Char code2: %d"), C);
+                        //}
 
-                        ChatHistory.Insert(SystemMessage, 0); // 插入到开头
+                        //ChatHistory.Insert(SystemMessage, 0); // 插入到开头
 
-                        LoadPromptFromTxt(); // 重新更新环境信息
+                        //LoadPromptFromTxt(); // 重新更新环境信息
 
-                        SendMessageWithContext(TEXT(""), ChatHistory, Result);
+
+                        
+
+                        //SendMessageWithContext(TEXT(""), ChatHistory, Result);
                         break; // 找到后停止
                     }
 
