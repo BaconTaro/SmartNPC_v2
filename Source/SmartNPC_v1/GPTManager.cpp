@@ -214,7 +214,7 @@ bool UGPTManager::ParseGPTReply(const FString& GPTReply, FParsedCommand& OutComm
                 AInteractableActor* TargetActor = *It;
                 if (TargetActor && TargetActor->GetFName().ToString() == OutCommand.Target)
                 {
-                    OutCommand.Action = TEXT("speak");
+                    OutCommand.Action = TEXT("say");
                     LogConversationToFile(TEXT("GPT New Action："), OutCommand.Action);
 
                     // 检查是否已交互，若是，修改 Action 为 speak
