@@ -89,6 +89,8 @@ public:
     void LoadPromptConfig();
     void LogConversationToFile(const FString& Role, const FString& Message);
 
+    FString GenerateEnvironmentPrompt();
+
     UFUNCTION(BlueprintCallable)
     void LoadPromptFromTxt();
 
