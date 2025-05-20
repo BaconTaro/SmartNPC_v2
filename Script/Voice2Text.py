@@ -15,7 +15,7 @@ channels = 1  # mono channel
 dtype = 'int16'  # data type
 format_pcm = 'pcm'  # the format of the audio data
 block_size = 3200  # number of frames per buffer
-
+all_sentences = []
 
 def init_dashscope_api_key():
     """
@@ -138,19 +138,34 @@ def start_voice_recognition(on_sentence_end_callback=None):
 
 # main function
 if __name__ == '__main__':
+
+
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(script_dir, "started.txt"), "w", encoding="utf-8") as f:
+        f.write("Python script started silently.\n")
+
+
     # 示例回调函数
     def example_callback(text):
         print(f"句子结束，识别结果: {text}")
-    
+        all_sentences.append(text)
+        # 每次识别一条就立即写入 result.txt
+        with open(result_path, "a", encoding="utf-8") as f:
+            f.write(text + " ")
+
     # 启动语音识别
     recognition = start_voice_recognition(example_callback)
-    
+    stop_path = os.path.join(os.path.dirname(__file__), "stop.txt")
+    result_path = os.path.join(os.path.dirname(__file__), "result.txt")
+
     # 主循环
     while True:
+        
+        if os.path.exists(stop_path):
+            print("检测到 stop.txt，结束语音识别")
+            break
         if stream:
             data = stream.read(3200, exception_on_overflow=False)
             recognition.send_audio_frame(data)
-        else:
-            break
 
     recognition.stop()
