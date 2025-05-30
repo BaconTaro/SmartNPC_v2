@@ -27,7 +27,7 @@ def init_dashscope_api_key():
         dashscope.api_key = os.environ[
             'DASHSCOPE_API_KEY']  # load API-key from environment variable DASHSCOPE_API_KEY
     else:
-        dashscope.api_key = ''  # set API-key manually
+        dashscope.api_key = 'sk-e6c9bb924b2f4edda330840a888ae4d8'  # set API-key manually
 
 
 # Real-time speech recognition callback
